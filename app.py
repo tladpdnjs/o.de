@@ -37,7 +37,7 @@ if user_input := st.chat_input("고민을 이야기해주세요..."):
     # 사용자 메시지 저장 및 화면 표시
     st.session_state.messages.append({"role": "user", "content": user_input})
     with st.chat_message("user"):
-        st.write(user_input})
+        st.write(user_input)
 
     # 챗봇 답변 생성 및 화면 표시
     with st.chat_message("assistant"):
@@ -51,7 +51,6 @@ if user_input := st.chat_input("고민을 이야기해주세요..."):
             )
             
             # API 요청을 위한 대화 기록 포맷 변환 (Gemini 형식에 맞춤)
-            # 대화 기록 유지를 위해 세션 상태의 기록을 전달합니다.
             chat_history = []
             for msg in st.session_state.messages[:-1]: # 현재 입력 직전까지의 기록
                 role = "user" if msg["role"] == "user" else "model"
