@@ -1,140 +1,72 @@
 import streamlit as st
-import time
+import google.generativeai as genai
 
-# 페이지 기본 설정 (상단 탭 이름 및 아이콘)
-st.set_page_config(page_title="연애 코칭 룸", page_icon="💖", layout="centered")
+# 1. 페이지 설정 및 제목
+st.set_page_config(page_title="달달한 연애상담소", page_icon="💖")
+st.title("💖 달달한 연애상담소")
+st.caption("연애 고민, 썸, 이별 이야기까지 무엇이든 편하게 이야기해보세요.")
 
-# --- 앱 제목 및 소개 ---
-st.title("💖 1:1 맞춤형 연애 코칭 룸")
-st.caption("연애 전문가의 실전 팁과 상황별 솔루션을 제공합니다.")
-st.write("---")
+# 2. 시스템 인스트럭션 설정 (챗봇의 페르소나/주제 변경 시 이 부분을 수정하세요)
+SYSTEM_INSTRUCTION = """
+당신은 따뜻하고 공감 능력이 뛰어난 전문 연애 상담사입니다.
+사용자의 연애 고민(썸, 연애, 이별, 인간관계 등)을 듣고 친구처럼 다정하게 공감해주며, 
+때로는 현명하고 객관적인 조언을 제공해야 합니다.
+답변은 너무 길지 않고 친근한 말투(반말이나 존댓말 중 자연스러운 톤앤매너)로 작성해주세요.
+"""
 
-# 사이드바로 메뉴 분리하여 전문적인 느낌 주기
-menu = st.sidebar.selectbox("메뉴를 선택하세요", ["🏠 홈 / 고민 상담소", "📊 연애 성향 진단", "💬 카톡 말투 심폐소생술"])
+# 3. Streamlit Secrets에서 API 키 불러오기 및 초기화
+try:
+    # Streamlit Cloud 환경 또는 로컬 .streamlit/secrets.toml 환경에서 키를 가져옵니다.
+    api_key = st.secrets["GEMINI_API_KEY"]
+    genai.configure(api_key=api_key)
+except KeyError:
+    st.error("API 키를 찾을 수 없습니다. Streamlit Secrets에 'GEMINI_API_KEY'를 설정해주세요.")
+    st.stop()
 
-# ==========================================
-# 메뉴 1: 홈 / 고민 상담소
-# ==========================================
-if menu == "🏠 홈 / 고민 상담소":
-    st.subheader("🔮 상황별 맞춤 솔루션 제공")
-    
-    # 1. 고민 유형 선택
-    category = st.radio(
-        "현재 어떤 단계의 고민인가요?",
-        ["짝사랑 & 썸", "연애 중 & 갈등", "이별 & 재회"],
-        horizontal=True
-    )
-    
-    # 2. 상세 상황 입력
-    st.write("")
-    user_status = st.selectbox(
-        "구체적인 상황을 골라주세요",
-        [
-            "상대방의 마음을 잘 모르겠어요", 
-            "연락 문제로 자주 싸워요", 
-            "상대방이 갑자기 이별을 통보했어요", 
-            "기타 (직접 입력)"
-        ]
-    )
-    
-    if user_status == "기타 (직접 입력)":
-        detail_text = st.text_area("고민을 자세히 적어주세요:", placeholder="예: 3달째 썸만 타고 있는데 고백 타이밍을 못 잡겠어요.")
-    else:
-        detail_text = user_status
+# 4. 세션 상태(Session State)로 채팅 기록 초기화
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-    # 3. 코칭 받기 실행
-    if st.button("🔥 맞춤 솔루션 추출하기", use_container_width=True):
-        with st.spinner("코치님이 분석 중입니다... 잠시만 기다려주세요."):
-            time.sleep(1.5) # 실제 분석하는 듯한 효과
-            
-        st.success("💌 분석 완료! 당신을 위한 연애 지침서")
+# 5. 기존 채팅 기록 표시
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.write(message["content"])
+
+# 6. 사용자 입력 및 챗봇 답변 처리
+if user_input := st.chat_input("고민을 이야기해주세요..."):
+    # 사용자 메시지 저장 및 화면 표시
+    st.session_state.messages.append({"role": "user", "content": user_input})
+    with st.chat_message("user"):
+        st.write(user_input})
+
+    # 챗봇 답변 생성 및 화면 표시
+    with st.chat_message("assistant"):
+        message_placeholder = st.empty()
         
-        # 카테고리별 맞춤형 심층 조언 출력
-        if "짝사랑" in category:
-            st.markdown(f"### 📍 썸/짝사랑 탈출 전략")
-            st.info(f"**현재 상황 분석:** {detail_text}")
-            st.markdown("""
-            * **핵심 포인트:** 상대방에게 '편한 친구'가 아닌 '이성'으로 인식되는 것이 급선무입니다.
-            * **실전 액션 플랜:**
-                1. 주말 저녁 시간대, 단둘이 만날 수 있는 명분을 만드세요. (맛집, 영화 등)
-                2. 대화 중 리액션을 평소보다 1.5배 크게 하고, 가벼운 아이컨택을 3초 이상 유지해 보세요.
-                3. 카톡 답장 시간에 너무 연연하지 말고, 저녁 시간에 집중적으로 티키타카를 이어가세요.
-            """)
+        try:
+            # gemini-2.5-flash-lite 모델 설정
+            model = genai.GenerativeModel(
+                model_name="gemini-2.5-flash-lite",
+                system_instruction=SYSTEM_INSTRUCTION
+            )
             
-        elif "연애 중" in category:
-            st.markdown(f"### 📍 관계 회복 및 갈등 해결책")
-            st.info(f"**현재 상황 분석:** {detail_text}")
-            st.markdown("""
-            * **핵심 포인트:** 갈등의 원인은 '사랑의 크기'가 아니라 '대화 방식의 차이'일 확률이 높습니다.
-            * **실전 액션 플랜:**
-                1. **서운함 표현의 법칙:** "너는 왜 항상 그래?" 대신 **"네가 연락이 늦어지면 내가 방치된 기분이 들어서 속상해"**라고 나의 감정(I-Message)을 전달하세요.
-                2. 싸울 때 과거 이야기(예전 잘못)를 다시 꺼내는 것은 절대 금물입니다. 오직 현재의 문제만 다루세요.
-                3. 대화가 감정적으로 격해질 때는 "10분만 식히고 다시 얘기하자"고 타임아웃을 요청하세요.
-            """)
+            # API 요청을 위한 대화 기록 포맷 변환 (Gemini 형식에 맞춤)
+            # 대화 기록 유지를 위해 세션 상태의 기록을 전달합니다.
+            chat_history = []
+            for msg in st.session_state.messages[:-1]: # 현재 입력 직전까지의 기록
+                role = "user" if msg["role"] == "user" else "model"
+                chat_history.append({"role": role, "parts": [msg["content"]]})
             
-        elif "이별" in category:
-            st.markdown(f"### 📍 이별 극복 및 재회 가이드")
-            st.info(f"**현재 상황 분석:** {detail_text}")
-            st.markdown("""
-            * **핵심 포인트:** 조급한 연락은 상대방에게 거부감만 더 키웁니다. 지금은 '공백기'가 절대적으로 필요합니다.
-            * **실전 액션 플랜:**
-                1. **최소 2주~4주의 법칙:** 상대방의 감정이 가라앉고 당신의 빈자리를 느낄 수 있는 최소한의 시간을 주어야 합니다.
-                2. SNS에 힘들어하는 티(이별 노래 가사, 우울한 글귀)를 내지 마세요. 오히려 잘 지내는 듯한 일상 사진이 상대방에게 궁금증을 유발합니다.
-                3. 다시 연락할 때는 무거운 진심 고백보다, 가벼운 안부나 상대방이 잘 아는 분야에 대한 질문으로 자연스럽게 시작하는 것이 좋습니다.
-            """)
-
-# ==========================================
-# 메뉴 2: 연애 성향 진단
-# ==========================================
-elif menu == "📊 연애 성향 진단":
-    st.subheader("📊 나의 연애 점수 및 성향 체크")
-    st.write("간단한 테스트를 통해 나의 연애 스타일을 진단해보세요.")
-    
-    q1 = st.slider("1. 마음에 드는 상대가 생기면 먼저 적극적으로 다가간다.", 1, 5, 3)
-    q2 = st.slider("2. 연인의 사생활이나 개인 시간도 존중해 주어야 한다.", 1, 5, 3)
-    q3 = st.slider("3. 갈등이 생기면 회피하기보다 그 자리에서 풀려고 노력한다.", 1, 5, 3)
-    
-    if st.button("📊 결과 보기", use_container_width=True):
-        total_score = q1 + q2 + q3
-        st.write("---")
-        st.metric(label="당신의 연애 점수", value=f"{total_score} / 15점")
-        
-        if total_score >= 12:
-            st.balloons()
-            st.success("😎 **직진형 에너자이저 스타일**\n\n자신감이 넘치고 솔직한 연애를 하는 타입입니다! 밀당보다는 솔직함이 무기지만, 상대방이 페이스가 느린 사람이라면 조금 기다려주는 미덕도 필요합니다.")
-        elif total_score >= 7:
-            st.info("🌿 **사려 깊은 밸런스 스타일**\n\n상대방을 배려하면서도 적절한 거리를 유지할 줄 아는 현명한 타입입니다. 다만 너무 조심스럽다 보니 고백이나 관계 진전 타이밍을 놓칠 수 있으니 가끔은 용기를 내보세요.")
-        else:
-            st.warning("🌪️ **생각이 많은 신중파 스타일**\n\n상처받는 것이 두려워 마음을 여는 데 시간이 오래 걸리는 타입일 수 있습니다. 연애는 완벽한 준비가 되었을 때 시작하는 것이 아니라, 함께 맞춰가는 과정임을 기억하세요!")
-
-# ==========================================
-# 메뉴 3: 카톡 말투 심폐소생술
-# ==========================================
-elif menu == "💬 카톡 말투 심폐소생술":
-    st.subheader("💬 딱딱한 카톡 말투를 다정하게 바꾸기")
-    st.write("상대방에게 보낼 카톡 메시지를 입력하면, 호감도를 높이는 말투로 가이드 해 드립니다.")
-    
-    chat_input = st.text_input("보내려는 원래 카톡 문장:", placeholder="예: 주말에 뭐해?")
-    
-    if st.button("✨ 다정하게 변환하기"):
-        if not chat_input:
-            st.warning("문장을 입력해주세요!")
-        else:
-            st.write("---")
-            col1, col2 = st.columns(2)
+            # 대화 시작 및 답변 생성
+            chat = model.start_chat(history=chat_history)
+            response = chat.send_message(user_input)
             
-            with col1:
-                st.error("❌ 기존 말투")
-                st.write(f"\"{chat_input}\"")
-                st.caption("소통이 다소 딱딱하거나 의도를 오해할 수 있음")
-                
-            with col2:
-                st.success("⭕ 추천 말투")
-                # 몇 가지 예시 매칭 및 기본 변환 룰
-                if "뭐해" in chat_input or "주말" in chat_input:
-                    st.write(f"**\"이번 주말에 날씨 좋다던데, 맛있는 거 먹으러 갈래요? 😊\"**")
-                elif "바빠" in chat_input:
-                    st.write(f"**\"오늘 많이 바빴죠? 고생 많았어요. 집 들어가서 편하게 쉬어요 펀칭!\"**")
-                else:
-                    st.write(f"**\"{chat_input} ㅎㅎ 오늘 하루도 화이팅이에요! ✨\"**")
-                st.caption("이모지와 부드러운 어미를 사용해 호감도 상승!")
+            # 답변 출력 및 저장
+            ai_response = response.text
+            message_placeholder.write(ai_response)
+            st.session_state.messages.append({"role": "assistant", "content": ai_response})
+            
+        except Exception as e:
+            # API 오류 및 기타 예외 처리
+            error_msg = f"죄송합니다. 답변을 생성하는 중 오류가 발생했습니다. (오류 내용: {str(e)})"
+            message_placeholder.write(error_msg)
